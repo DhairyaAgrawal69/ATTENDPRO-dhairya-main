@@ -17,3 +17,6 @@ segno #QR code
 pillow #image preprocessing
 
 streamlit #frontend library
+
+librosa #voice file editing
+resemblyzer #voice ->  embeddings

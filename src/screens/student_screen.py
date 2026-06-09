@@ -3,6 +3,8 @@ from src.ui.style_base_layout import style_base_layout, style_background_dashboa
 
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
+from PIL import Image
+import numpy as np 
 
 def student_screen():
 
@@ -19,7 +21,9 @@ def student_screen():
 
     st.header('Login using FaceID', text_alignment='center')
     st.space()
-    st.space()
     
-    st.camera_input("Position your face in the center")
+    photo_source= st.camera_input("Position your face in the center")
+
+    if photo_source:
+        np.array(Image.open(photo_source))
     footer_dashboard()
