@@ -89,7 +89,7 @@ def student_screen():
 
     style_background_dashboard()
     style_base_layout()
-
+    
     if "student_data" in st.session_state:
         student_dashboard()
         return
@@ -123,7 +123,7 @@ def student_screen():
                 if detected:
                     student_id = list(detected.keys())[0]
                     all_students = get_all_students()
-                    student = next((s for s in all_students if s['student_id']), None)
+                    student = next((s for s in all_students if s['student_id']==student_id), None)
 
                     if student:
                         st.session_state.is_logged_in = True
