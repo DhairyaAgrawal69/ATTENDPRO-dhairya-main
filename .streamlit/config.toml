@@ -1,0 +1,12 @@
+[theme]
+base="light"
+
+[layout]
+# This forces the website to stay narrow and centered instead of stretching!
+wideMode = false
+
+[client]
+# This completely hides the top-right "Deploy" button and the main menu burger.
+# It saves vertical screen space and helps prevent layout shifting!
+showErrorDetails = true
+toolbarMode = "minimal"
