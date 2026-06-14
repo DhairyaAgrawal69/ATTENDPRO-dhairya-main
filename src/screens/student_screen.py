@@ -1,14 +1,14 @@
 import streamlit as st
-from src.ui.style_base_layout import style_base_layout, style_background_dashboard
+
+from src.ui.style_base_layout import style_background_dashboard, style_base_layout
 
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
 from PIL import Image
-import numpy as np 
+import numpy as np
 from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier
 from src.pipelines.voice_pipeline import get_voice_embedding
 from src.database.db import get_all_students, create_student, get_student_subjects, get_student_attendance, unenroll_student_to_subject
-
 import time
 
 from src.components.dialog_enroll import enroll_dialog
@@ -37,7 +37,9 @@ def student_dashboard():
         if st.button('Enroll in Subject', type='primary', width='stretch'):
             enroll_dialog()
 
+
     st.divider()
+
 
     with st.spinner('Loading your enrolled subjects..'):
         subjects = get_student_subjects(student_id)
@@ -64,9 +66,8 @@ def student_dashboard():
 
 
         stats = stats_map.get(sid,{"total":0, "attended": 0} )
-
         def unenroll_button():
-                if st.button("Unenroll from this course", type='tertiary', width='stretch', icon=':material/delete_forever:', key=f"unenroll_{sub['name']}"):
+                if st.button("Unenroll from tihs course", type='tertiary', width='stretch', icon=':material/delete_forever:'):
                     unenroll_student_to_subject(student_id, sid)
                     st.toast(f'Unenrolled from {sub['name']} successfully!')
                     st.rerun()
@@ -85,25 +86,24 @@ def student_dashboard():
             )
     footer_dashboard()
 
+
 def student_screen():
+
 
     style_background_dashboard()
     style_base_layout()
-    
+
+
     if "student_data" in st.session_state:
         student_dashboard()
         return
-
-    c1, c2 = st.columns(2, vertical_alignment="center",gap = "xxlarge")
+    
+    c1, c2 = st.columns(2, vertical_alignment='center', gap='xxlarge')
     with c1:
         header_dashboard()
     with c2:
-        if st.button("Go back to Home", type="secondary", key="loginbackbtn", shortcut = 'ctrl+backspace'):
-            # 1. Pehle URL se join waale extra links/parameters saaf karein
-            st.query_params.clear() 
-            # 2. Fir page state ko badalkar home set karein
-            st.session_state.page = 'home'
-            st.session_state['login_type']= None
+        if st.button("Go back to Home", type='secondary', key='loginbackbtn', shortcut="control+backspace"):
+            st.session_state['login_type'] = None
             st.rerun()
 
     st.header('Login using FaceID', text_alignment='center')
@@ -111,17 +111,17 @@ def student_screen():
     st.space()
     
     show_registration = False
-    photo_source= st.camera_input("Position your face in the center")
+    photo_source = st.camera_input("Position your face in the center")
 
     if photo_source:
         img = np.array(Image.open(photo_source))
 
-        with st.spinner("AI is scanning.."):
+        with st.spinner('AI is scanning..'):
             detected, all_ids, num_faces = predict_attendance(img)
 
             if num_faces == 0:
                 st.warning('Face not found!')
-            elif num_faces > 1:
+            elif num_faces >1:
                 st.warning('Multiple faces found')
             else:
                 if detected:
@@ -139,7 +139,6 @@ def student_screen():
                 else:
                     st.info('Face not recognized! You might be a new student!')
                     show_registration = True
-    
     if show_registration:
         with st.container(border=True):
             st.header('Register new Profile')
@@ -148,13 +147,14 @@ def student_screen():
             st.subheader('Optional : Voice Enrollment')
             st.info("Enroll your for voice only attendance")
 
+
             audio_data = None
 
             try:
                 audio_data = st.audio_input('Record a short phrase like I am present, My name is Akash.')
             except Exception:
                 st.error('Audio Data failed!')
-            
+
             if st.button('Create Account', type='primary'):
                 if new_name:
                     with st.spinner('Creating profile..'):
@@ -184,4 +184,5 @@ def student_screen():
                     st.warning('Please enter your name!')
 
 
+        
     footer_dashboard()
