@@ -44,14 +44,14 @@ def style_base_layout():
             }   
 
             h1{
-                font-family: 'Anton', sans-serif !important;
+                font-family: 'Anton SC', sans-serif !important;
                 font-size: 3.5rem !important;
                 line-height:1.1 !important;
                 margin-bottom:0rem !important;
             }
             
             h2{
-                font-family: 'Anton', sans-serif !important;
+                font-family: 'Anton SC', sans-serif !important;
                 font-size: 2rem !important;
                 line-height: 0.9 !important;
                 margin-bottom:0rem !important;
@@ -60,7 +60,12 @@ def style_base_layout():
             h3, h4, p {
                 font-family: 'Outfit', sans-serif;    
             }
-                
+
+            /* SMART FIX: Camera Mirroring Logic added globally but safely */
+            div[data-testid="stCameraInput"] video {
+                transform: scaleX(-1) !important;
+                -webkit-transform: scaleX(-1) !important;
+            }  
             button{
                 border-radius: 1.5rem !important;
                 background-color: #5865F2 !important;
