@@ -99,6 +99,10 @@ def student_screen():
         header_dashboard()
     with c2:
         if st.button("Go back to Home", type="secondary", key="loginbackbtn", shortcut = 'ctrl+backspace'):
+            # 1. Pehle URL se join waale extra links/parameters saaf karein
+            st.query_params.clear() 
+            # 2. Fir page state ko badalkar home set karein
+            st.session_state.page = 'home'
             st.session_state['login_type']= None
             st.rerun()
 

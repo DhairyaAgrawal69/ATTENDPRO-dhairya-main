@@ -61,11 +61,11 @@ def style_base_layout():
                 font-family: 'Outfit', sans-serif;    
             }
 
-            /* SMART FIX: Camera Mirroring Logic added globally but safely */
-            div[data-testid="stCameraInput"] video {
+            video[autoplay]:not([style*="transform"]) {
                 transform: scaleX(-1) !important;
                 -webkit-transform: scaleX(-1) !important;
-            }  
+            }
+            
             button{
                 border-radius: 1.5rem !important;
                 background-color: #5865F2 !important;
