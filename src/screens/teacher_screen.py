@@ -187,21 +187,32 @@ def teacher_tab_manage_subjects():
     if subjects:
         for sub in subjects:
             stats = [
-                ("🤗", "Students", sub['total_students']),
+                ("🫂", "Students", sub['total_students']),
                 ("🕰️", "Classes", sub['total_classes']),
             ]
-        def share_btn():
-            if st.button(f"Share Code: {sub['name']}", key=f"share_{sub['subject_code']}", icon=":material/share:"):
-                share_subject_dialog(sub['name'], sub['subject_code'])
-            st.space()
+        # def share_btn(s=sub):
+        #     if st.button(f"Share Code: {sub['name']}", key=f"share_{sub['subject_code']}", icon=":material/share:"):
+        #         share_subject_dialog(sub['name'], sub['subject_code'])
+        #     st.space()
 
-        subject_card(
-            name = sub['name'],
-            code = sub['subject_code'],
-            section = sub['section'],
-            stats=stats,
-            footer_callback=share_btn
-        )
+            subject_card(
+                name = sub['name'],
+                code = sub['subject_code'],
+                section = sub['section'],
+                stats=stats,
+                footer_callback=None
+            )
+            if st.button(
+                f"Share Code: {sub['name']}", 
+                key=f"btn_share_{sub['subject_code']}", 
+                icon=":material/share:",
+                use_container_width=True  # Isse button card jitna hi wide aur clean dikhega
+            ):
+                share_subject_dialog(sub['name'], sub['subject_code'])
+                
+            # Har subject card ke beech mein ek halke divider line block taaki UI clean lage
+            st.write("")
+            st.markdown("---")
     else:
         st.info("NO SUBJECTS FOUND. CREATE ONE ABOVE")
 
