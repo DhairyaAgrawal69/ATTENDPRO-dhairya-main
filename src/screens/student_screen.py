@@ -4,9 +4,9 @@ from src.ui.style_base_layout import style_background_dashboard, style_base_layo
 
 from src.components.header import header_dashboard
 from src.components.footer import footer_dashboard
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
-from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier
+from src.pipelines.face_pipeline import predict_attendance, get_face_embeddings, train_classifier, authenticate_student_face
 from src.pipelines.voice_pipeline import get_voice_embedding
 from src.database.db import get_all_students, create_student, get_student_subjects, get_student_attendance, unenroll_student_to_subject
 import time
@@ -114,31 +114,34 @@ def student_screen():
     photo_source = st.camera_input("Position your face in the center")
 
     if photo_source:
-        img = np.array(Image.open(photo_source))
+        with st.spinner('AI is analyzing facial features...'):
+            auth_result = authenticate_student_face(
+                photo_source,
+                resemblance_threshold=0.44,
+                min_cosine_similarity=0.925,
+                min_confidence=60.0
+            )
 
-        with st.spinner('AI is scanning..'):
-            detected, all_ids, num_faces = predict_attendance(img)
+            if auth_result['status'] == 'no_face':
+                st.warning(auth_result['message'])
+            elif auth_result['status'] == 'multiple_faces':
+                st.warning(auth_result['message'])
+            elif auth_result['authenticated']:
+                student_id = auth_result['student_id']
+                all_students = get_all_students()
+                student = next((s for s in all_students if s['student_id'] == student_id), None)
 
-            if num_faces == 0:
-                st.warning('Face not found!')
-            elif num_faces >1:
-                st.warning('Multiple faces found')
+                if student:
+                    st.session_state.is_logged_in = True
+                    st.session_state.user_role = 'student'
+                    st.session_state.student_data = student
+                    st.toast(f"Welcome Back {student['name']}! (Confidence: {auth_result['confidence']:.0f}%)")
+                    time.sleep(1)
+                    st.rerun()
             else:
-                if detected:
-                    student_id = list(detected.keys())[0]
-                    all_students = get_all_students()
-                    student = next((s for s in all_students if s['student_id']==student_id), None)
-
-                    if student:
-                        st.session_state.is_logged_in = True
-                        st.session_state.user_role = 'student'
-                        st.session_state.student_data = student
-                        st.toast(f'Welcome Back {student['name']}')
-                        time.sleep(1)
-                        st.rerun()
-                else:
-                    st.info('Face not recognized! You might be a new student!')
-                    show_registration = True
+                # Strictly reject: face does not strongly match any registered student
+                st.error(auth_result['message'])
+                show_registration = True
     if show_registration:
         with st.container(border=True):
             st.header('Register new Profile')
@@ -158,8 +161,10 @@ def student_screen():
             if st.button('Create Account', type='primary'):
                 if new_name:
                     with st.spinner('Creating profile..'):
-                        img = np.array(Image.open(photo_source))
-                        encodings= get_face_embeddings(img)
+                        pil_img = Image.open(photo_source)
+                        img_rgb = ImageOps.exif_transpose(pil_img).convert('RGB')
+                        img = np.array(img_rgb)
+                        encodings = get_face_embeddings(img)
                         if encodings:
                             face_emb = encodings[0].tolist()
 
@@ -174,11 +179,11 @@ def student_screen():
                                 st.session_state.is_logged_in = True
                                 st.session_state.user_role = 'student'
                                 st.session_state.student_data = response_data[0]
-                                st.toast(f'Profile Created! Hi {new_name}!')
+                                st.toast(f"Profile Created! Hi {new_name}!")
                                 time.sleep(1)
                                 st.rerun()
                         else:
-                            st.error('Couldnt capture your facial features for registration')
+                            st.error('Could not capture your facial features for registration. Please ensure your face is clearly visible and well-lit.')
 
                 else:
                     st.warning('Please enter your name!')

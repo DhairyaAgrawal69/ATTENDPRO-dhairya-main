@@ -120,52 +120,91 @@ def teacher_tab_take_attendance():
     with c1:
         if st.button('Clear all photos', width='stretch', type='tertiary', icon=':material/delete:', disabled=not has_photos):
             st.session_state.attendance_images = []
+            st.session_state.pop('_processed_upload_keys', None)
+            st.session_state.pop('_last_cam_bytes', None)
             st.rerun()
 
     with c2:
         if st.button('Run Face Analysis', width='stretch', type='secondary', icon=':material/analytics:', disabled=not has_photos):
             with st.spinner('Deep scanning classroom photos...'):
                 all_detected_ids = {}
-                for idx, img in enumerate(st.session_state.attendance_images):
-                    img_np = np.array(img.convert('RGB'))
-                    detected, _, _ = predict_attendance(img_np)
+                total_faces_detected = 0
+                num_photos = len(st.session_state.attendance_images)
+                print(f"[TEACHER] Starting Deep Scan across {num_photos} classroom photo(s)...", flush=True)
 
-                    if detected:
-                        for sid in detected.keys():
-                            student_id = int(sid)
+                for idx, raw_img in enumerate(st.session_state.attendance_images):
+                    try:
+                        print(f"[TEACHER] Processing classroom photo #{idx+1}/{num_photos}...", flush=True)
+                        detected, _, num_faces = predict_attendance(
+                            raw_img,
+                            resemblance_threshold=0.45,
+                            min_cosine_similarity=0.91,
+                            min_confidence=58.0
+                        )
+                        total_faces_detected += num_faces
+                        print(f"[TEACHER] Photo #{idx+1} complete: {num_faces} face(s) found, recognized student IDs={list(detected.keys())}", flush=True)
 
-                            all_detected_ids.setdefault(student_id, []).append(f"Photo {idx+1}")
+                        if detected:
+                            for sid, match_data in detected.items():
+                                student_id = int(sid)
+                                conf_pct = match_data.get('confidence') if isinstance(match_data, dict) else None
+                                source_label = f"Photo {idx+1} ({conf_pct:.0f}%)" if conf_pct else f"Photo {idx+1}"
+                                all_detected_ids.setdefault(student_id, []).append(source_label)
+                    except Exception as e:
+                        print(f"[TEACHER] Error analyzing photo #{idx+1}: {e}", flush=True)
 
-                enrolled_res = supabase.table('subject_students').select("*, students(*)").eq('subject_id',selected_subject_id ).execute()
+                print(f"[TEACHER] Deep scan finished: {total_faces_detected} face(s) found, recognized student IDs={list(all_detected_ids.keys())}", flush=True)
+
+                enrolled_res = supabase.table('subject_students').select("*, students(*)").eq('subject_id', selected_subject_id).execute()
                 enrolled_students = enrolled_res.data
 
                 if not enrolled_students:
                     st.warning('No students enrolled in this course')
+                elif total_faces_detected == 0:
+                    st.warning('No faces detected in the uploaded photos! Please upload clearer, well-lit photos showing students.')
                 else:
-                    results, attendance_to_log  = [], []
-
+                    results = []
+                    attendance_to_log = []
                     current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
                     for node in enrolled_students:
-                        student = node['students']
-                        sources = all_detected_ids.get(int(student['student_id']), [])
-                        is_present= len(sources) > 0
+                        student = node.get('students', {})
+                        raw_sid = student.get('student_id')
+                        try:
+                            student_id_val = int(raw_sid)
+                        except (TypeError, ValueError):
+                            student_id_val = raw_sid
+
+                        sources = all_detected_ids.get(student_id_val, [])
+                        is_present = bool(len(sources) > 0)
 
                         results.append({
-                            "Name": student['name'],
-                            "ID": student['student_id'],
-                            "Source": ", ".join(sources) if is_present else "-",
+                            "Name": str(student.get('name', 'Unknown')),
+                            "ID": student_id_val,
+                            "Source": str(", ".join(sources) if is_present else "-"),
                             "Status": "✅ Present" if is_present else "❌ Absent"
                         })
 
+                        try:
+                            sub_id_val = int(selected_subject_id)
+                        except (TypeError, ValueError):
+                            sub_id_val = selected_subject_id
+
                         attendance_to_log.append({
-                            'student_id': student['student_id'],
-                            'subject_id': selected_subject_id,
-                            'timestamp': current_timestamp,
-                            'is_present': bool(is_present)
+                            'student_id': student_id_val,
+                            'subject_id': sub_id_val,
+                            'timestamp': str(current_timestamp),
+                            'is_present': is_present
                         })
 
-                attendance_result_dialog(pd.DataFrame(results), attendance_to_log)
+                    # Ensure attendance data in st.session_state is plain Python dict/list before opening dialog
+                    st.session_state.attendance_results_data = {
+                        'records': results,
+                        'logs': attendance_to_log
+                    }
+
+                    # Open dialog with plain Python dict/list (no DataFrames, no raw numpy/image buffers)
+                    attendance_result_dialog(results, attendance_to_log)
 
     with c3:
         if st.button('Use Voice Attendance', type='primary', width='stretch', icon=':material/mic:'):

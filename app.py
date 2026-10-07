@@ -9,11 +9,15 @@ def main():
 
     st.set_page_config(
         page_title='ATTEND PRO - Making Attendance faster using AI',
-        page_icon= "https://i.ibb.co/YTYGn5qV/logo.png"
+        page_icon= "https://i.ibb.co/YTYGn5qV/logo.png",
+        layout="centered"
     )
 
     if 'login_type' not in st.session_state:
         st.session_state['login_type'] = None
+
+    if 'attendance_images' not in st.session_state:
+        st.session_state['attendance_images'] = []
 
     match st.session_state['login_type']:
         case 'teacher':

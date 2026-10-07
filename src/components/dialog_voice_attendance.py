@@ -39,32 +39,46 @@ def voice_attendance_dialog(selected_subject_id):
 
             detected_scores = process_bulk_audio(audio_bytes, candidates_dict)
 
-            results, attendance_to_log  = [], []
-
+            results = []
+            attendance_to_log = []
             current_timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-
             for node in enrolled_students:
-                student = node['students']
-                score  = detected_scores.get(student['student_id'], 0.0)
-                is_present= bool(score>0)
+                student = node.get('students', {})
+                raw_sid = student.get('student_id')
+                try:
+                    student_id_val = int(raw_sid)
+                except (TypeError, ValueError):
+                    student_id_val = raw_sid
+
+                raw_score = detected_scores.get(raw_sid, 0.0)
+                try:
+                    score_val = float(raw_score)
+                except (TypeError, ValueError):
+                    score_val = 0.0
+                is_present = bool(score_val > 0)
 
                 results.append({
-                    "Name": student['name'],
-                    "ID": student['student_id'],
-                    "Source": score if is_present else "-",
+                    "Name": str(student.get('name', 'Unknown')),
+                    "ID": student_id_val,
+                    "Source": f"{score_val:.2f}" if is_present else "-",
                     "Status": "✅ Present" if is_present else "❌ Absent"
                 })
 
+                try:
+                    sub_id_val = int(selected_subject_id)
+                except (TypeError, ValueError):
+                    sub_id_val = selected_subject_id
+
                 attendance_to_log.append({
-                    'student_id': student['student_id'],
-                    'subject_id': selected_subject_id,
-                    'timestamp': current_timestamp,
-                    'is_present': bool(is_present)
+                    'student_id': student_id_val,
+                    'subject_id': sub_id_val,
+                    'timestamp': str(current_timestamp),
+                    'is_present': is_present
                 })
-            st.session_state.voice_attendance_results = (pd.DataFrame(results), attendance_to_log)
+            st.session_state.voice_attendance_results = (results, attendance_to_log)
 
     if st.session_state.get('voice_attendance_results'):
         st.divider()
-        df_results, logs = st.session_state.voice_attendance_results
-        show_attendance_result(df_results, logs)
+        results_list, logs = st.session_state.voice_attendance_results
+        show_attendance_result(results_list, logs)
