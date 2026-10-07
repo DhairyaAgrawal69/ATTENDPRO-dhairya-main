@@ -20,3 +20,5 @@ pillow #image preprocessing
 
 librosa #voice file editing
 resemblyzer #voice ->  embeddings
+
+opencv-python-headless
